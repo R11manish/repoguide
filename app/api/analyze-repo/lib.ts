@@ -97,14 +97,14 @@ async function runRepomix(
       throw new Error(ERROR_MESSAGES.INVALIDREPO);
     }
 
-    // Check prerequisites
-    const prereqsMet = await checkPrerequisites();
-    if (!prereqsMet) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.ENOENT,
-      };
-    }
+    // // Check prerequisites
+    // const prereqsMet = await checkPrerequisites();
+    // if (!prereqsMet) {
+    //   return {
+    //     success: false,
+    //     error: ERROR_MESSAGES.ENOENT,
+    //   };
+    // }
 
     // Ensure repomix is installed
     const repomixInstalled = await ensureRepomixInstalled(options.silent);
