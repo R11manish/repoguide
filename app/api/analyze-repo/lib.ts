@@ -1,146 +1,44 @@
-import { exec } from "child_process";
-import { promisify } from "util";
-
-// Convert exec to promise-based function
-const execAsync = promisify(exec);
-
-// Types and interfaces
-export interface RepomixOptions {
-  branch?: string;
-  path?: string;
-  silent?: boolean;
+interface GitAnalyzerParams {
+  github_url: string;
+  max_file_size?: number;
+  include_patterns?: string[] | string;
+  exclude_patterns?: string[] | string;
 }
 
-export interface RepomixResult {
-  success: boolean;
-  output?: string;
-  error?: string;
+interface GitAnalyzerResponse {
+  summary: any;
+  tree: any;
+  content: any;
 }
 
-interface ErrorMessages {
-  [key: string]: string;
-}
-
-type CommandOutput = {
-  stdout: string;
-  stderr: string;
-};
-
-// Error handling constants
-const ERROR_MESSAGES: ErrorMessages = {
-  ENOENT: "pnpm is not installed. Please install pnpm first.",
-  EACCES: "Permission denied. Try running with sudo or as administrator.",
-  NETWORKISSUE: "Network error. Please check your internet connection.",
-  INVALIDREPO: "Invalid repository URL provided.",
-  REPOMIXERROR: "Error executing repomix command.",
-};
-
-function isValidGithubUrl(url: string): boolean {
-  const githubUrlPattern = /^https?:\/\/github\.com\/[\w-]+\/[\w-]+$/;
-  return githubUrlPattern.test(url);
-}
-
-function buildCommand(repoUrl: string, options: RepomixOptions): string {
-  let command = `pnpm repomix --remote ${repoUrl}`;
-
-  if (options.branch) {
-    command += ` --branch ${options.branch}`;
-  }
-  if (options.path) {
-    command += ` --path ${options.path}`;
+export const analyzeGitRepo = async (
+  params: GitAnalyzerParams
+): Promise<GitAnalyzerResponse> => {
+  if (!process.env.AWS_URL) {
+    throw new Error("AWS_URL environment variable is not defined");
   }
 
-  return command;
-}
-
-async function ensureRepomixInstalled(silent = false): Promise<boolean> {
   try {
-    await execAsync("repomix --version");
-    return true;
-  } catch {
-    if (!silent) {
-      console.log("Installing repomix...");
-    }
-    try {
-      await execAsync("pnpm add  repomix");
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-}
+    const response = await fetch(process.env.AWS_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params),
+    });
 
-async function checkPrerequisites(): Promise<boolean> {
-  try {
-    await execAsync("pnpm --version");
-    return true;
-  } catch {
-    console.error("pnpm is not installed. Please install pnpm first.");
-    return false;
-  }
-}
-
-function handleError(error: any): string {
-  if (error.code && ERROR_MESSAGES[error.code]) {
-    return ERROR_MESSAGES[error.code];
-  }
-  return error.message || ERROR_MESSAGES.REPOMIXERROR;
-}
-
-async function runRepomix(
-  repoUrl: string,
-  options: RepomixOptions = {}
-): Promise<RepomixResult> {
-  try {
-    // Validate repository URL
-    if (!isValidGithubUrl(repoUrl)) {
-      throw new Error(ERROR_MESSAGES.INVALIDREPO);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || `Request failed with status ${response.status}`
+      );
     }
 
-    // // Check prerequisites
-    // const prereqsMet = await checkPrerequisites();
-    // if (!prereqsMet) {
-    //   return {
-    //     success: false,
-    //     error: ERROR_MESSAGES.ENOENT,
-    //   };
-    // }
-
-    // Ensure repomix is installed
-    const repomixInstalled = await ensureRepomixInstalled(options.silent);
-    if (!repomixInstalled) {
-      return {
-        success: false,
-        error: "Failed to install repomix",
-      };
-    }
-
-    // Build and execute command
-    const command = buildCommand(repoUrl, options);
-    const { stdout, stderr }: CommandOutput = await execAsync(command);
-
-    // Handle output
-    if (!options.silent) {
-      if (stdout) console.log("Output:", stdout);
-      if (stderr) console.error("Errors:", stderr);
-    }
-
-    return {
-      success: true,
-      output: stdout,
-      error: stderr || undefined,
-    };
+    return await response.json();
   } catch (error) {
-    const errorMessage = handleError(error);
-    if (!options.silent) {
-      console.error("Error executing repomix:", errorMessage);
+    if (error instanceof Error) {
+      throw new Error(`Failed to analyze repository: ${error.message}`);
     }
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    throw new Error("An unexpected error occurred");
   }
-}
-
-// Export types and functions
-export { runRepomix, checkPrerequisites };
+};

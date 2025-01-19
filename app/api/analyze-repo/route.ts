@@ -1,36 +1,32 @@
 import { streamText } from "ai";
 import { deepseek } from "@ai-sdk/deepseek";
-import { SYSTEM_PROMPT } from "./prompt";
-import { RepomixResult, runRepomix } from "./lib";
+import { ignorePatterns, SYSTEM_PROMPT } from "./prompt";
+import { analyzeGitRepo } from "./lib";
 
 export async function POST(req: Request) {
   try {
     let { repoUrl } = await req.json();
-    let repoContent: RepomixResult = await runRepomix(repoUrl);
+    let repoContent = await analyzeGitRepo({
+      github_url: repoUrl,
+      max_file_size: 51200,
+    });
 
-    if (repoContent.success) {
-      console.log("Repository mixed successfully!");
-      if (repoContent.output) {
-        console.log("Repository content:", repoContent.output);
-      } else {
-        repoContent = { success: false, output: "" };
-      }
-    }
+    console.log(repoContent);
 
     const result = streamText({
-      model: deepseek("deepseek-chat"),
+      model: deepseek("deepseek-coder"),
       system: SYSTEM_PROMPT,
       messages: [
         {
           role: "user",
-          content: `Here's the repository content to analyze:\n\n${repoContent.output}`,
+          content: `Here's the repository content to analyze:\n\n${
+            (repoContent.tree, repoContent.content)
+          }`,
         },
       ],
-      temperature: 0.2,
+      temperature: 0.6,
       maxTokens: 4000,
     });
-
-    console.log("DeepSeek result:", result);
 
     return result.toDataStreamResponse();
   } catch (error) {
