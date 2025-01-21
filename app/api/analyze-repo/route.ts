@@ -8,10 +8,10 @@ export async function POST(req: Request) {
     let { repoUrl } = await req.json();
     let repoContent = await analyzeGitRepo({
       github_url: repoUrl,
-      max_file_size: 51200,
+      max_file_size: 6400,
     });
 
-    console.log(repoContent);
+    console.log(repoContent.tree);
 
     const result = streamText({
       model: deepseek("deepseek-coder"),
@@ -19,12 +19,10 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "user",
-          content: `Here's the repository content to analyze:\n\n${
-            (repoContent.tree, repoContent.content)
-          }`,
+          content: `This is the directory structure of the Project :\n\n${repoContent.tree}  Here's the repository content to analyze:\n\n${repoContent.content}`,
         },
       ],
-      temperature: 0.6,
+      temperature: 0,
       maxTokens: 4000,
     });
 
