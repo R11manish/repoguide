@@ -14,6 +14,8 @@ RepoGuide is a modern web application built with Next.js that helps users analyz
 - Markdown rendering support
 - Toast notifications with Sonner
 - Command palette functionality with CMDK
+- Serverless backend with AWS Lambda
+- GitHub repository analysis and content extraction
 
 ## Tech Stack
 
@@ -29,6 +31,24 @@ RepoGuide is a modern web application built with Next.js that helps users analyz
 - **Icons**: Lucide React + React Icons
 - **Date Handling**: date-fns
 - **Markdown**: react-markdown
+
+## Backend Architecture
+
+The backend of RepoGuide is built using AWS Lambda functions, providing a serverless architecture that efficiently handles repository analysis tasks. Here's how it works:
+
+- **Repository Cloning**: Lambda functions handle the secure cloning of GitHub repositories
+- **Content Extraction**: Automated extraction of repository content and metadata
+- **Analysis Pipeline**: Processing and analyzing repository content for insights
+- **API Integration**: RESTful endpoints for frontend communication
+- **Scalable Infrastructure**: Serverless architecture ensures optimal resource utilization
+
+The backend services are designed to be:
+
+- Highly scalable
+- Cost-effective
+- Secure
+- Easy to maintain
+- Event-driven
 
 ## Getting Started
 
